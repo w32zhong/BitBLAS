@@ -180,8 +180,8 @@ def build_tvm(llvm_config_path):
         config_file.write("set(USE_CUDA ON)\n")
     # Run CMake and make
     try:
-        subprocess.check_call(["cmake", ".."])
-        subprocess.check_call(["make", "-j"])
+        subprocess.check_call(["cmake", "..", "-DCUDA_CUDA_LIBRARY=/home/zhong/anaconda3/envs/bitblas/lib/stubs"])
+        subprocess.check_call(["make", "-j", "3"])
     except subprocess.CalledProcessError as error:
         raise RuntimeError("Failed to build TVM") from error
     finally:
@@ -192,7 +192,8 @@ def build_tvm(llvm_config_path):
 def setup_llvm_for_tvm():
     """Downloads and extracts LLVM, then configures TVM to use it."""
     # Assume the download_and_extract_llvm function and its dependencies are defined elsewhere in this script
-    extract_path = download_and_extract_llvm(LLVM_VERSION, IS_AARCH64, EXTRACT_PATH)
+    #extract_path = download_and_extract_llvm(LLVM_VERSION, IS_AARCH64, EXTRACT_PATH)
+    extract_path = '/home/zhong/Desktop/bitblas/BitBLAS/3rdparty/clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04'
     llvm_config_path = os.path.join(extract_path, "bin", "llvm-config")
     return extract_path, llvm_config_path
 
