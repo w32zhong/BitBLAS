@@ -14,6 +14,7 @@ conda install gcc_linux-64 gxx_linux-64
 conda install cuda -c nvidia/label/cuda-12.1
 pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
 conda install cmake
+python setup.py build
 ```
 
 For running TVM Python interface:
@@ -27,3 +28,6 @@ To test:
 cd build/lib
 python -c "import bitblas; print(bitblas.__version__)"
 ```
+
+`tvm` is imported from `BitBLAS/build/lib/bitblas/3rdparty/tvm/python`.
+bitblas-related modules are imported from `BitBLAS/python/bitblas`.
