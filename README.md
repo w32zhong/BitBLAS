@@ -1,4 +1,4 @@
-# BitBLAS
+## Build
 For using the out-dated `llvm-config`:
 ```sh
 git clone https://aur.archlinux.org/ncurses5-compat-libs.git
@@ -29,5 +29,8 @@ cd build/lib
 python -c "import bitblas; print(bitblas.__version__)"
 ```
 
+## Code Structure 
 `tvm` is imported from `BitBLAS/build/lib/bitblas/3rdparty/tvm/python`.
 bitblas-related modules are imported from `BitBLAS/python/bitblas`.
+
+* [BitNet-1.58 forward](https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L143-L144)
