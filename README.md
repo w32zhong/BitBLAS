@@ -29,6 +29,11 @@ cd build/lib
 python -c "import bitblas; print(bitblas.__version__)"
 ```
 
+## Hello World
+1. Make changes
+2. `python setup.py build`
+3. `python my_test.py`
+
 ## Code Structure 
 `tvm` is imported from `BitBLAS/build/lib/bitblas/3rdparty/tvm/python`.
 bitblas-related modules are imported from `BitBLAS/python/bitblas`.

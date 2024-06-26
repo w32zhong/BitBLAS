@@ -171,7 +171,8 @@ class Operator(ABC):
         _, best = fast_tune(func, target, topk=topk, parallel_build=parallel_build)
         if best is not None:
             return best.sch.mod
-        self.pass_context = best.config.pass_context
+        #self.pass_context = best.config.pass_context
+        self.pass_context = {}
         return None
 
     def apply_fast_tuning_with_dynamic_range(
