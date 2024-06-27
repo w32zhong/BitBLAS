@@ -43,5 +43,6 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
 * [BitNet-1.58 MatMul](https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L77)
 * [Declare Matmul](https://github.com/w32zhong/BitBLAS/blob/f4dc3032c27ff0d377a40bf14d6f2c3e6c52c470/python/bitblas/__init__.py#L35)
 * [Matmul](python/bitblas/ops/general_matmul.py#L184)
+* [Matmul:forward](python/bitblas/ops/general_matmul.py#L480)
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
