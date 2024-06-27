@@ -45,5 +45,9 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
 * [Matmul](python/bitblas/ops/general_matmul.py#L184)
 * [Matmul:forward](python/bitblas/ops/general_matmul.py#L480)
 * [Matmul:forward\_from\_prebuild\_lib](python/bitblas/ops/operator.py#L287)
+* lib init call stack:
+    * [Matmul:`__init__` calls `_build_default_module`](python/bitblas/ops/general_matmul.py#L249)
+    * [Matmul:`_build_default_module` calls `_build_runtime_module`](python/bitblas/ops/general_matmul.py#L360)
+    * [Matmul:`_build_runtime_module`](python/bitblas/ops/operator.py#L73) calls tvm.build and self.lib.init()
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
