@@ -26,6 +26,6 @@ mod = tvm.build(Module, target="llvm")
 a = tvm.nd.array(np.zeros((1, 1024)).astype("float16"))
 b = tvm.nd.array(np.zeros((1024, 256)).astype("int8"))
 c = tvm.nd.array(np.zeros((1024, 1024)).astype("float16"))
-
-res = mod(a, b, c)
+mod(a, b, c)
+print(c)
 breakpoint()
