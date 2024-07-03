@@ -54,17 +54,16 @@ def decode_func(n, k):
     return w
 
 B_decode = te.compute((N, K), decode_func, name="B_decode")
-args = [A, B, B_decode]
 
-#k = te.reduce_axis((0, K), name="k")
-#C = te.compute(
-#    (M, N),
-#    lambda i, j: te.sum(
-#        A[i, k].astype(accum_dtype) * B_decode[j, k].astype(accum_dtype), axis=k),
-#    name="C",
-#)
-#D = te.compute((M, N), lambda i, j: C[i, j].astype(out_dtype), name="D")
-#args = [A, B, D]
+k = te.reduce_axis((0, K), name="k")
+C = te.compute(
+    (M, N),
+    lambda i, j: te.sum(
+        A[i, k].astype(accum_dtype) * B_decode[j, k].astype(accum_dtype), axis=k),
+    name="C",
+)
+D = te.compute((M, N), lambda i, j: C[i, j].astype(out_dtype), name="D")
+args = [A, B, D]
 
 func = te.create_prim_func(args)
 """
