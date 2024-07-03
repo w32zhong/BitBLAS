@@ -49,6 +49,7 @@ def _tir_packed_to_signed_convert(*args):
     return f_convert
 
 def decode_func(n, k):
+    # n_float_per_elem: number of values per bytes
     n_float_per_elem = storage_nbit // bit # 8 // 2 = 4
     w = _tir_packed_to_signed_convert(storage_type, storage_nbit)(
         bit, B[n, k // n_float_per_elem], k % n_float_per_elem, dtype=in_dtype)
