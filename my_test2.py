@@ -23,6 +23,7 @@ with_zeros=False
 zeros_mode='original'
 
 A = te.placeholder((M, K), name="A", dtype=in_dtype)
+# (K * bit // storage_nbit) is how many bytes (dtype=int8) the compressed values take
 B = te.placeholder((N, K // storage_nbit * bit), name="B", dtype=storage_dtype)
 
 def _tir_packed_to_signed_convert(*args):
