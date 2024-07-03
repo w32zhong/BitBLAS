@@ -28,8 +28,22 @@ B = te.placeholder((N, K // storage_nbit * bit), name="B", dtype=storage_dtype)
 def _tir_packed_to_signed_convert(*args):
     def f_convert(nbit: int, val: tir.PrimExpr, pos: tir.PrimExpr, dtype: str):
         max_int_value = (1 << (nbit - 1)) # 2
-        return ((val >> (pos.astype("uint32") * tir.const(nbit, "uint32"))) & tir.const(
-            (1 << nbit) - 1, "uint32")).astype(dtype) - tir.const(max_int_value, dtype)
+        return (
+                (val >> (pos.astype("uint32") * tir.const(nbit, "uint32")))
+                &
+                tir.const((1 << nbit) - 1, "uint32")
+            ).astype(dtype) - tir.const(max_int_value, dtype)
+
+    # B_decode[v_n, v_k] =
+    #   T.Cast("float16", T.bitwise_and(
+    #       T.shift_right(
+    #           T.Cast("uint32", B[v_n, v_k // 4]),
+    #           T.Cast("uint32", v_k % 4) * T.uint32(2)
+    #       ),
+    #       T.uint32(3)
+    #   ))
+    #   -
+    #   T.float16(2)
 
     return f_convert
 

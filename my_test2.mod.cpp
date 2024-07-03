@@ -1,4 +1,4 @@
-// tvm target: c -keys=cpu 
+// gcc my_test2.mod.cpp -I 3rdparty/tvm/include/ -I 3rdparty/tvm/3rdparty/dlpack/include/
 #define TVM_EXPORTS
 #include "tvm/runtime/c_runtime_api.h"
 #include "tvm/runtime/c_backend_api.h"

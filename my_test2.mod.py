@@ -21,9 +21,11 @@ class Module:
                 T.writes(B_decode[v_n, v_k])
                 B_decode[v_n, v_k] = T.Cast("float16", T.bitwise_and(T.shift_right(T.Cast("uint32", B[v_n, v_k // 4]), T.Cast("uint32", v_k % 4) * T.uint32(2)), T.uint32(3))) - T.float16(2)
 
-mod = tvm.build(Module, target="c")
-with open('/dev/stdout', 'w') as fh:
-    fh.write(mod.get_source())
+Module.show()
+
+#mod = tvm.build(Module, target="c")
+#with open('/dev/stdout', 'w') as fh:
+#    fh.write(mod.get_source())
 
 #mod = tvm.build(Module, target="llvm")
 #a = tvm.nd.array(np.zeros((1, 1024)).astype("float16"))
