@@ -226,6 +226,8 @@ class Matmul(Operator):
         self.source_format = source_format
         self.bit = bit
         super().__init__(name, config, target)
+        # here prim_func_mod gets assigned for the first time
+        # print(self.prim_func_mod)
 
         if source_format == "int" and self.with_zeros:
             logger.warning(
