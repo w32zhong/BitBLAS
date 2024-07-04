@@ -34,7 +34,7 @@ python -c "import bitblas; print(bitblas.__version__)"
 2. `python setup.py build`
 3. `python my_test.py`
 
-To avoid build C++, only run `build_py.run(self)` in `BitBLASBuilPydCommand` of `setup.py`.
+To avoid build C++, comment `build_tvm(llvm_path)` in `BitBLASBuilPydCommand` of `setup.py`.
 
 ## Code Structure 
 `tvm` is imported from `BitBLAS/build/lib/bitblas/3rdparty/tvm/python`.
