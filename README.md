@@ -76,5 +76,6 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
    @tvm._ffi.register_object("transform.ModulePass")
    class ModulePass(Pass):
    ```
+    * according to [`tvm._ffi`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) or FFI (Foreign Function Interface), the `register_object` is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
