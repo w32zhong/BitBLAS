@@ -147,14 +147,14 @@ class Operator(ABC):
     def apply_default_schedule(self, func_mod: IRModule, target: Target) -> IRModule:
         mod_for_opt = deepcopy(func_mod)
         with target:
-            optimized_mod = (
-                bitblas.ApplyDefaultSchedule(  # pylint: disable=not-callable
-                    bitblas.gpu.Matmul(),
-                    bitblas.gpu.GEMV(),
-                    bitblas.gpu.Reduction(),
-                    bitblas.gpu.GeneralReduction(),
-                    bitblas.gpu.Fallback(),
-                )(mod_for_opt))
+            tmp = bitblas.ApplyDefaultSchedule(  # pylint: disable=not-callable
+                bitblas.gpu.Matmul(),
+                bitblas.gpu.GEMV(),
+                bitblas.gpu.Reduction(),
+                bitblas.gpu.GeneralReduction(),
+                bitblas.gpu.Fallback(),
+            )
+            optimized_mod = tmp(mod_for_opt)
 
         if optimized_mod is not None:
             return optimized_mod
