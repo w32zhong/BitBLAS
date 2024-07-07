@@ -73,8 +73,27 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     * the seemingly most important work for class wrapper is that it additionally calls [`self.__init_handle_by_constructor__(...)`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309)
     * the [`ModulePass`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L242) class is registered by `@tvm._ffi.register_object`:
     ```py
+    @tvm._ffi.register_object("transform.Pass")
+    class Pass(tvm.runtime.Object):
+    def __call__(self, mod):
+        """Execute the pass. Note that for sequential pass, the dependency among
+        different passes will be resolved in the backend.
+
+        Parameters
+        ----------
+        mod : tvm.IRModule
+            The module that a certain optimization is performed on.
+
+        Returns
+        -------
+        mod : tvm.IRModule
+            The updated module after applying this pass.
+        """
+        return _ffi_transform_api.RunPass(self, mod)
+      
     @tvm._ffi.register_object("transform.ModulePass")
     class ModulePass(Pass):
+       pass
     ```
     * according to TVM FFI (Foreign Function Interface) [`tvm._ffi.register_object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82), the `register_object` is defined as (`object_name=type_key='transform.ModulePass'`)
     ```py
@@ -105,5 +124,6 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     ```
     * in our case, when `tvm.ir.transform.ModulePass` is passed into `register(cls)` above, and `_register_object(tindex, cls)` is called.
     * `_register_object` is imported from [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) and ctype.object is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
+    * On the other hand, `tvm.runtime.Object` is defined [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49).
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
