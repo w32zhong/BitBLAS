@@ -64,18 +64,45 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     * in `module_pass`, a function called `create_module_pass` is returned.
     * At the place of `ApplyDefaultSchedule` class declaration, `name=ApplyDefaultSchedule, pass_arg=<class 'bitblas.base.transform.ApplyDefaultSchedule'>`
     * and the class is wrapped by `_wrap_class_module_pass`:
-   ```py
-   info = PassInfo(opt_level, fname, required, traceable)
-   return _wrap_class_module_pass(pass_arg, info)
-   ```
+    ```py
+    info = PassInfo(opt_level, fname, required, traceable)
+    return _wrap_class_module_pass(pass_arg, info)
+    ```
     * [`_wrap_class_module_pass`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L293) wraps a `PyModulePass(ModulePass)` class
     * At the time of class initialization, the `PyModulePass.__init__` will serve as a proxy of `ApplyDefaultSchedule.__init__` by calling `inst = pass_cls(*args, **kwargs)`
     * the seemingly most important work for class wrapper is that it additionally calls [`self.__init_handle_by_constructor__(...)`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309)
     * the [`ModulePass`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L242) class is registered by `@tvm._ffi.register_object`:
-   ```py
-   @tvm._ffi.register_object("transform.ModulePass")
-   class ModulePass(Pass):
-   ```
-    * according to [`tvm._ffi`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) or FFI (Foreign Function Interface), the `register_object` is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
+    ```py
+    @tvm._ffi.register_object("transform.ModulePass")
+    class ModulePass(Pass):
+    ```
+    * according to TVM FFI (Foreign Function Interface) in [`tvm._ffi`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) and [`tvm._ffi.register_object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82), the `register_object` is defined as
+    ```py
+    def register_object(type_key=None):
+       object_name = type_key if isinstance(type_key, str) else type_key.__name__
+   
+       def register(cls):
+           """internal register function"""
+           if hasattr(cls, "_type_index"):
+               tindex = cls._type_index
+           else:
+               tidx = ctypes.c_uint()
+               if not _RUNTIME_ONLY:
+                   check_call(_LIB.TVMObjectTypeKey2Index(c_str(object_name), ctypes.byref(tidx)))
+               else:
+                   # directly skip unknown objects during runtime.
+                   ret = _LIB.TVMObjectTypeKey2Index(c_str(object_name), ctypes.byref(tidx))
+                   if ret != 0:
+                       return cls
+               tindex = tidx.value
+           _register_object(tindex, cls)
+           return cls
+   
+       if isinstance(type_key, str):
+           return register
+   
+       return register(type_key)
+    ```
+    * and ctype.object is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
