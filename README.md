@@ -59,6 +59,7 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
 * Apply optimizations
     * [`build_default_module`](python/bitblas/ops/general_matmul.py#L353) calls `apply_default_schedule`
     * [`apply_default_schedule`](python/bitblas/ops/operator.py#L147) calls `bitblas.ApplyDefaultSchedule`
-    * [`bitblas.ApplyDefaultSchedule`](python/bitblas/base/transform.py#L37) 
+    * [`bitblas.ApplyDefaultSchedule`](python/bitblas/base/transform.py#L37) is wrapped by `@module_pass`
+    * [`module_pass`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/python/tvm/ir/transform.py) is defined in `svm`
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
