@@ -76,7 +76,7 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     @tvm._ffi.register_object("transform.ModulePass")
     class ModulePass(Pass):
     ```
-    * according to TVM FFI (Foreign Function Interface) in [`tvm._ffi`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) and [`tvm._ffi.register_object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82), the `register_object` is defined as (`type_key='transform.ModulePass'`)
+    * according to TVM FFI (Foreign Function Interface) [`tvm._ffi.register_object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82), the `register_object` is defined as (`object_name=type_key='transform.ModulePass'`)
     ```py
     def register_object(type_key=None):
        object_name = type_key if isinstance(type_key, str) else type_key.__name__
@@ -85,24 +85,25 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
            """internal register function"""
            if hasattr(cls, "_type_index"):
                tindex = cls._type_index
-           else:
+           else: # will go here in our case
                tidx = ctypes.c_uint()
                if not _RUNTIME_ONLY:
-                   check_call(_LIB.TVMObjectTypeKey2Index(c_str(object_name), ctypes.byref(tidx)))
+                   check_call(_LIB.TVMObjectTypeKey2Index(c_str(object_name), ctypes.byref(tidx))) # will go here in our case
                else:
                    # directly skip unknown objects during runtime.
                    ret = _LIB.TVMObjectTypeKey2Index(c_str(object_name), ctypes.byref(tidx))
                    if ret != 0:
                        return cls
-               tindex = tidx.value
+               tindex = tidx.value # equal to 164 in our case.
            _register_object(tindex, cls)
            return cls
    
        if isinstance(type_key, str):
-           return register
+           return register # will go here in our case
    
        return register(type_key)
     ```
-    * and ctype.object is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
+    * in our case, when `tvm.ir.transform.ModulePass` is passed into `register(cls)` above, and [`_register_object(tindex, cls)`]() is called.
+    * `_register_object` is imported from [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) and ctype.object is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
