@@ -75,21 +75,8 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     ```py
     @tvm._ffi.register_object("transform.Pass")
     class Pass(tvm.runtime.Object):
-    def __call__(self, mod):
-        """Execute the pass. Note that for sequential pass, the dependency among
-        different passes will be resolved in the backend.
-
-        Parameters
-        ----------
-        mod : tvm.IRModule
-            The module that a certain optimization is performed on.
-
-        Returns
-        -------
-        mod : tvm.IRModule
-            The updated module after applying this pass.
-        """
-        return _ffi_transform_api.RunPass(self, mod)
+       def __call__(self, mod):
+           return _ffi_transform_api.RunPass(self, mod)
       
     @tvm._ffi.register_object("transform.ModulePass")
     class ModulePass(Pass):
@@ -124,6 +111,6 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     ```
     * in our case, when `tvm.ir.transform.ModulePass` is passed into `register(cls)` above, and `_register_object(tindex, cls)` is called.
     * `_register_object` is imported from [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) and ctype.object is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
-    * On the other hand, `tvm.runtime.Object` is defined [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49).
+    * On the other hand, `tvm.runtime.Object` is defined [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49) which is also inhered from [`ObjectBase`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L114) which has the `__init_handle_by_constructor__` member function.
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
