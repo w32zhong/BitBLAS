@@ -138,6 +138,7 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
            ff.__doc__ = "TVM PackedFunc %s. " % fname
            setattr(target_module, ff.__name__, ff)
     ```
+    * where the [`get_global_func`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/packed_func.py:L286) is internally calling [`_load_lib`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/base.py:L63) via `lib = ctypes.CDLL(lib_path[0], ctypes.RTLD_GLOBAL)` by loading dynamic library from `BitBLAS/build/lib/bitblas/3rdparty/tvm/build/libtvm.so`. 
     
 * [Matmul:transform weight (calling general compress)](python/bitblas/ops/general_matmul.py#L407)
 * [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
