@@ -123,8 +123,6 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     * where the [`get_global_func`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/packed_func.py:L286) is internally calling [`_load_lib`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/base.py:L63) via `lib = ctypes.CDLL(lib_path[0], ctypes.RTLD_GLOBAL)` by loading dynamic library from `BitBLAS/build/lib/bitblas/3rdparty/tvm/build/libtvm.so`.
     * the 2nd argument is a function `_pass_func(mod, ctx)` that simply calls [`inst.transform_module(mod, ctx)`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L306). If you unwrap the decorators, in the case of `ApplyDefaultSchedule`, it is [ApplyDefaultSchedule.transform_module](https://github.com/w32zhong/BitBLAS/blob/main/python/bitblas/base/transform.py#L50).
     * the 3rd argument is of type `tvm.ir.transform.PassInfo` which in this case is formated in string `The meta data of the pass - pass name: ApplyDefaultSchedule, opt_level: 0, required passes: []`. 
-    
-* [bitblas.quantization.general\_compress](python/bitblas/quantization/utils.py#L54)
 
 ## Code Structure in Diagram
 ```mermaid
@@ -134,7 +132,7 @@ graph TD;
    bitblas_matmul[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L144">BitLinear.bitblas_matmul.forward</a>]
    transform_weight_call[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L92-L93">BitLinear.bitblas_matmul.transform_weight call</a>]
    transform_weight[<a href="https://github.com/w32zhong/BitBLAS/blob/10039dd848f3f43b0170670f49b83dfe9a7c0a12/python/bitblas/ops/general_matmul.py#L409">BitLinear.bitblas_matmul.transform_weight</a>]
-   general_compress[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L92-L93">general_compress</a>]
+   general_compress[<a href="https://github.com/w32zhong/BitBLAS/blob/b6cc2e798af0a487b5e953c8c6fef309d54beea7/python/bitblas/quantization/utils.py#L54">general_compress</a>]
    bitblas_bitnet_example --> bitblas_matmul_init
    bitblas_matmul_init --> bitblas_matmul
    bitblas_matmul_init --> transform_weight_call --> transform_weight --> general_compress
