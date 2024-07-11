@@ -90,10 +90,17 @@ graph TD;
    _register_object[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42">_register_object</a>]
    tvm_runtime_obj[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49">tvm.runtime.Object</a>]
    tvm_runtime_obj_base[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L111">tvm.runtime.ObjectBase</a>]
-    
+
    module_pass -->|return| _wrap_class_module_pass --> pass_cls
    _wrap_class_module_pass --> __init_handle_by_constructor__
-   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object -->|inhereted| _register_object -->|inhereted| tvm_runtime_obj -->|inhereted| tvm_runtime_obj_base -->|has| __init_handle_by_constructor__
+   _wrap_class_module_pass -->|inhereted| ModulePass -->|inhereted| Pass  -->|inhereted| tvm_runtime_obj -->|inhereted| tvm_runtime_obj_base -->|has| __init_handle_by_constructor__
+   register_object --> _register_object 
+   ModulePass -->|wrapped| register_object
+   ModulePass -->|register| transform.ModulePass
+   Pass -->|wrapped| register_object
+   Pass -->|register| transform.Pass
+
+   __init_handle_by_constructor__ --> foo
 ```
 
 * [__init_handle_by_constructor__](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309) function calling
