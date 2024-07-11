@@ -40,10 +40,6 @@ To avoid build C++, comment `build_tvm(llvm_path)` in `BitBLASBuilPydCommand` of
 `tvm` is imported from `BitBLAS/build/lib/bitblas/3rdparty/tvm/python`.
 bitblas-related modules are imported from `BitBLAS/python/bitblas`.
 
-* lib init call stack:
-    * [Matmul:`__init__` calls `_build_default_module`](python/bitblas/ops/general_matmul.py#L249), sets `optimized_func` to `prim_func_mod`.
-    * [Matmul:`_build_default_module` calls `_build_runtime_module`](python/bitblas/ops/general_matmul.py#L360)
-    * [Matmul:`_build_runtime_module`](python/bitblas/ops/operator.py#L73) calls tvm.build(`optimized_func`) and self.lib.init()
 * initial `prim_func_mod`:
     * [`Operator.prim_func_mod = self._select_implementation()`](python/bitblas/ops/operator.py#L48)
     * [`Matmul._select_implementation`](python/bitblas/ops/general_matmul.py#L362) uses `weight_dequantize_implementation` which is imported from below `select_implementation`:
@@ -160,4 +156,8 @@ graph TD;
    bitblas_matmul_init --> matmul_init
    matmul_init --> _build_default_module_call --> _build_default_module --> _build_runtime_module --> operator_lib_init_call --> operator_libcall
    bitblas_matmul --> matmul_forward --> _forward_from_prebuild_lib --> operator_libcall
+
+   apply_default_schedule_call[<a href="https://github.com/w32zhong/BitBLAS/blob/b6cc2e798af0a487b5e953c8c6fef309d54beea7/python/bitblas/ops/general_matmul.py#L355">Matmul.optimized_func = apply_default_schedule of self.prim_func_mod</a>]
+   apply_default_schedule[<a href="https://github.com/w32zhong/BitBLAS/blob/b6cc2e798af0a487b5e953c8c6fef309d54beea7/python/bitblas/ops/operator.py#L147">Operator.apply_default_schedule</a>]
+   _build_default_module --> apply_default_schedule_call --> apply_default_schedule
 ```
