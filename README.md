@@ -159,5 +159,5 @@ graph TD;
    operator_lib_init_call[<a href="https://github.com/w32zhong/BitBLAS/blob/9f2169992a50a6a5cd451f6d9cbc7439debaf0ab/python/bitblas/ops/operator.py#L139">Operator.lib = self.wrapper.load_lib call</a>]
    bitblas_matmul_init --> matmul_init
    matmul_init --> _build_default_module_call --> _build_default_module --> _build_runtime_module --> operator_lib_init_call --> operator_libcall
-   bitblas_matmul --> matmul_forward --> _forward_from_prebuild_lib --> operator_lib_init_call
+   bitblas_matmul --> matmul_forward --> _forward_from_prebuild_lib --> operator_libcall
 ```
