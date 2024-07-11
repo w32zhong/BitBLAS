@@ -40,67 +40,6 @@ To avoid build C++, comment `build_tvm(llvm_path)` in `BitBLASBuilPydCommand` of
 `tvm` is imported from `BitBLAS/build/lib/bitblas/3rdparty/tvm/python`.
 bitblas-related modules are imported from `BitBLAS/python/bitblas`.
 
-* Apply optimizations
-    * according to TVM FFI (Foreign Function Interface) [`tvm._ffi.register_object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82), the `register_object` is defined as (`object_name=type_key='transform.ModulePass'`)
-    ```py
-    def register_object(type_key=None):
-       object_name = type_key if isinstance(type_key, str) else type_key.__name__
-   
-       def register(cls):
-           """internal register function"""
-           if hasattr(cls, "_type_index"):
-               tindex = cls._type_index
-           else: # will go here in our case
-               tidx = ctypes.c_uint()
-               if not _RUNTIME_ONLY:
-                   check_call(_LIB.TVMObjectTypeKey2Index(c_str(object_name), ctypes.byref(tidx))) # will go here in our case
-               else:
-                   # directly skip unknown objects during runtime.
-                   ret = _LIB.TVMObjectTypeKey2Index(c_str(object_name), ctypes.byref(tidx))
-                   if ret != 0:
-                       return cls
-               tindex = tidx.value # equal to 164 in our case.
-           _register_object(tindex, cls)
-           return cls
-   
-       if isinstance(type_key, str):
-           return register # will go here in our case
-   
-       return register(type_key)
-    ```
-    * in our case, when `tvm.ir.transform.ModulePass` is passed into `register(cls)` above, and `_register_object(tindex, cls)` is called.
-    * `_register_object` is imported from [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L25-L38) and ctype.object is imported [`from ._ctypes.object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42)
-    * On the other hand, `tvm.runtime.Object` is defined [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49) which is also inhered from [`ObjectBase`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L114) which has the `__init_handle_by_constructor__` member function.
-* [__init_handle_by_constructor__](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309) function calling
-    * the first argument is `_ffi_transform_api.MakeModulePass` which is initialized from [`tvm._ffi._init_api("transform", "tvm.ir._ffi_transform_api")`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/_ffi_transform_api.py). Following `tvm._ffi.__init__.py` we can find `_init_api` is defined [here](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L299) and it internally calls `_init_api_prefix("tvm.ir._ffi_transform_api", prefix="transform")` in this case to bind the foreign function:
-    ```py
-    def _get_api(f):
-       flocal = f
-       flocal.is_global = True
-       return flocal
-    
-    def _init_api_prefix(module_name, prefix):
-       module = sys.modules[module_name]
-   
-       for name in list_global_func_names():
-           if not name.startswith(prefix):
-               continue
-           # in this case, name = 'transform.MakeModulePass'   
-           fname = name[len(prefix) + 1 :] # 'MakeModulePass'
-           target_module = module # module 'tvm.ir._ffi_transform_api'
-   
-           if fname.find(".") != -1:
-               continue
-           f = get_global_func(name) # calls _get_global_func in 3rdparty/tvm/python/tvm/_ffi/_ctypes/packed_func.py
-           ff = _get_api(f) # see definition above
-           ff.__name__ = fname
-           ff.__doc__ = "TVM PackedFunc %s. " % fname
-           setattr(target_module, ff.__name__, ff)
-    ```
-    * where the [`get_global_func`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/packed_func.py:L286) is internally calling [`_load_lib`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/base.py:L63) via `lib = ctypes.CDLL(lib_path[0], ctypes.RTLD_GLOBAL)` by loading dynamic library from `BitBLAS/build/lib/bitblas/3rdparty/tvm/build/libtvm.so`.
-    * the 2nd argument is a function `_pass_func(mod, ctx)` that simply calls [`inst.transform_module(mod, ctx)`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L306). If you unwrap the decorators, in the case of `ApplyDefaultSchedule`, it is [ApplyDefaultSchedule.transform_module](https://github.com/w32zhong/BitBLAS/blob/main/python/bitblas/base/transform.py#L50).
-    * the 3rd argument is of type `tvm.ir.transform.PassInfo` which in this case is formated in string `The meta data of the pass - pass name: ApplyDefaultSchedule, opt_level: 0, required passes: []`. 
-
 ## Code Structure in Diagram
 Overall:
 ```mermaid
@@ -148,7 +87,39 @@ graph TD;
    __init_handle_by_constructor__[<a href="https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309">__init_handle_by_constructor__</a>]
    ModulePass[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L242">ModulePass</a>]
    register_object[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82">tvm._ffi.register_object</a>]
+   _register_object[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42">_register_object</a>]
    module_pass -->|return| _wrap_class_module_pass --> pass_cls
    _wrap_class_module_pass --> __init_handle_by_constructor__
-   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object
+   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object --> _register_object
 ```
+
+* On the other hand, `tvm.runtime.Object` is defined [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49) which is also inhered from [`ObjectBase`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L114) which has the `__init_handle_by_constructor__` member function.  
+* [__init_handle_by_constructor__](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309) function calling
+    * the first argument is `_ffi_transform_api.MakeModulePass` which is initialized from [`tvm._ffi._init_api("transform", "tvm.ir._ffi_transform_api")`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/_ffi_transform_api.py). Following `tvm._ffi.__init__.py` we can find `_init_api` is defined [here](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L299) and it internally calls `_init_api_prefix("tvm.ir._ffi_transform_api", prefix="transform")` in this case to bind the foreign function:
+    ```py
+    def _get_api(f):
+       flocal = f
+       flocal.is_global = True
+       return flocal
+    
+    def _init_api_prefix(module_name, prefix):
+       module = sys.modules[module_name]
+   
+       for name in list_global_func_names():
+           if not name.startswith(prefix):
+               continue
+           # in this case, name = 'transform.MakeModulePass'   
+           fname = name[len(prefix) + 1 :] # 'MakeModulePass'
+           target_module = module # module 'tvm.ir._ffi_transform_api'
+   
+           if fname.find(".") != -1:
+               continue
+           f = get_global_func(name) # calls _get_global_func in 3rdparty/tvm/python/tvm/_ffi/_ctypes/packed_func.py
+           ff = _get_api(f) # see definition above
+           ff.__name__ = fname
+           ff.__doc__ = "TVM PackedFunc %s. " % fname
+           setattr(target_module, ff.__name__, ff)
+    ```
+    * where the [`get_global_func`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/packed_func.py:L286) is internally calling [`_load_lib`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/base.py:L63) via `lib = ctypes.CDLL(lib_path[0], ctypes.RTLD_GLOBAL)` by loading dynamic library from `BitBLAS/build/lib/bitblas/3rdparty/tvm/build/libtvm.so`.
+    * the 2nd argument is a function `_pass_func(mod, ctx)` that simply calls [`inst.transform_module(mod, ctx)`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L306). If you unwrap the decorators, in the case of `ApplyDefaultSchedule`, it is [ApplyDefaultSchedule.transform_module](https://github.com/w32zhong/BitBLAS/blob/main/python/bitblas/base/transform.py#L50).
+    * the 3rd argument is of type `tvm.ir.transform.PassInfo` which in this case is formated in string `The meta data of the pass - pass name: ApplyDefaultSchedule, opt_level: 0, required passes: []`.
