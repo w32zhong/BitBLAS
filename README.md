@@ -41,29 +41,6 @@ To avoid build C++, comment `build_tvm(llvm_path)` in `BitBLASBuilPydCommand` of
 bitblas-related modules are imported from `BitBLAS/python/bitblas`.
 
 * Apply optimizations
-    * [`bitblas.ApplyDefaultSchedule`](python/bitblas/base/transform.py#L37) is wrapped by `@module_pass`
-    * [`module_pass`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L326) is defined in `svm`
-    * in `module_pass`, a function called `create_module_pass` is returned.
-    * At the place of `ApplyDefaultSchedule` class declaration, `name=ApplyDefaultSchedule, pass_arg=<class 'bitblas.base.transform.ApplyDefaultSchedule'>`
-    * and the class is wrapped by `_wrap_class_module_pass`:
-    ```py
-    info = PassInfo(opt_level, fname, required, traceable)
-    return _wrap_class_module_pass(pass_arg, info)
-    ```
-    * [`_wrap_class_module_pass`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L293) wraps a `PyModulePass(ModulePass)` class
-    * At the time of class initialization, the `PyModulePass.__init__` will serve as a proxy of `ApplyDefaultSchedule.__init__` by calling `inst = pass_cls(*args, **kwargs)`
-    * the seemingly most important work for class wrapper is that it additionally calls [`self.__init_handle_by_constructor__(...)`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309)
-    * the [`ModulePass`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L242) class is registered by `@tvm._ffi.register_object`:
-    ```py
-    @tvm._ffi.register_object("transform.Pass")
-    class Pass(tvm.runtime.Object):
-       def __call__(self, mod):
-           return _ffi_transform_api.RunPass(self, mod)
-      
-    @tvm._ffi.register_object("transform.ModulePass")
-    class ModulePass(Pass):
-       pass
-    ```
     * according to TVM FFI (Foreign Function Interface) [`tvm._ffi.register_object`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82), the `register_object` is defined as (`object_name=type_key='transform.ModulePass'`)
     ```py
     def register_object(type_key=None):
@@ -125,6 +102,7 @@ bitblas-related modules are imported from `BitBLAS/python/bitblas`.
     * the 3rd argument is of type `tvm.ir.transform.PassInfo` which in this case is formated in string `The meta data of the pass - pass name: ApplyDefaultSchedule, opt_level: 0, required passes: []`. 
 
 ## Code Structure in Diagram
+Overall:
 ```mermaid
 graph TD;
    bitblas_bitnet_example[<a href="">bitblas_bitnet_example</a>]
@@ -160,4 +138,17 @@ graph TD;
 
    _build_default_module --> apply_default_schedule_call --> apply_default_schedule --> ApplyDefaultSchedule
    matmul_init --> _select_implementation_call --> _select_implementation --> weight_dequantize_implementation --> matmul_nt_dequantize_b --> construct_tvm_graph
+```
+
+`module_pass`:
+```mermaid
+graph TD;
+   module_pass[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L325">module_pass</a>]
+   _wrap_class_module_pass[<a href="https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L293">_wrap_class_module_pass</a> wraps a PyModulePass class]
+   __init_handle_by_constructor__[<a href="https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309">bitblas_bitnet_example</a>]
+   ModulePass[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L242">ModulePass</a>]
+   register_object[tvm._ffi.register_object]
+   module_pass -->|return| _wrap_class_module_pass --> pass_cls
+   _wrap_class_module_pass --> __init_handle_by_constructor__
+   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object
 ```
