@@ -79,7 +79,7 @@ graph TD;
    matmul_init --> _select_implementation_call --> _select_implementation --> weight_dequantize_implementation --> matmul_nt_dequantize_b --> construct_tvm_graph
 ```
 
-`module_pass`:
+For `module_pass`:
 ```mermaid
 graph TD;
    module_pass[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L325">module_pass</a>]
@@ -94,11 +94,17 @@ graph TD;
    handle[Object.handle = constructor call]
    MakeModulePass[<a href="">_ffi_transform_api.MakeModulePass</a>]
    _ffi_transform_api[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/_ffi_transform_api.py">tvm.transform initialization</a>]
+   _init_api[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L299">_init_api</a>]
+   get_global_func[<a href="https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/packed_func.py#L286">get_global_func</a>]
+   _LIB_init[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/base.py#L63">_LIB</a>]
 
    module_pass -->|return| _wrap_class_module_pass --> pass_cls
    _wrap_class_module_pass --> __init_handle_by_constructor__call --> __init_handle_by_constructor__
    __init_handle_by_constructor__call -->|operand| MakeModulePass
-   _ffi_transform_api -->|define| MakeModulePass
+   __init_handle_by_constructor__call -->|operand| _pass_func --> pass_cls.transform_module
+   _ffi_transform_api --> _init_api --> _init_api_prefix --> get_global_func --> _LIB.call
+   _LIB_init --> _LIB.call
+   _init_api_prefix -->|define| MakeModulePass
    _wrap_class_module_pass -->|inhereted| ModulePass -->|inhereted| Pass  -->|inhereted| tvm_runtime_obj -->|inhereted| tvm_runtime_obj_base --> __init_handle_by_constructor__
    register_object --> _register_object 
    ModulePass -->|wrapped| register_object
@@ -107,31 +113,3 @@ graph TD;
    Pass -->|register| transform.Pass
    __init_handle_by_constructor__ --> handle
 ```
-the first argument is `_ffi_transform_api.MakeModulePass` which is initialized from [`tvm._ffi._init_api("transform", "tvm.ir._ffi_transform_api")`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/_ffi_transform_api.py). Following `tvm._ffi.__init__.py` we can find `_init_api` is defined [here](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L299) and it internally calls `_init_api_prefix("tvm.ir._ffi_transform_api", prefix="transform")` in this case to bind the foreign function:
- ```py
- def _get_api(f):
-    flocal = f
-    flocal.is_global = True
-    return flocal
- 
- def _init_api_prefix(module_name, prefix):
-    module = sys.modules[module_name]
-
-    for name in list_global_func_names():
-        if not name.startswith(prefix):
-            continue
-        # in this case, name = 'transform.MakeModulePass'   
-        fname = name[len(prefix) + 1 :] # 'MakeModulePass'
-        target_module = module # module 'tvm.ir._ffi_transform_api'
-
-        if fname.find(".") != -1:
-            continue
-        f = get_global_func(name) # calls _get_global_func in 3rdparty/tvm/python/tvm/_ffi/_ctypes/packed_func.py
-        ff = _get_api(f) # see definition above
-        ff.__name__ = fname
-        ff.__doc__ = "TVM PackedFunc %s. " % fname
-        setattr(target_module, ff.__name__, ff)
- ```
-where the [`get_global_func`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/packed_func.py:L286) is internally calling [`_load_lib`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/base.py:L63) via `lib = ctypes.CDLL(lib_path[0], ctypes.RTLD_GLOBAL)` by loading dynamic library from `BitBLAS/build/lib/bitblas/3rdparty/tvm/build/libtvm.so`.
-    * the 2nd argument is a function `_pass_func(mod, ctx)` that simply calls [`inst.transform_module(mod, ctx)`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L306). If you unwrap the decorators, in the case of `ApplyDefaultSchedule`, it is [ApplyDefaultSchedule.transform_module](https://github.com/w32zhong/BitBLAS/blob/main/python/bitblas/base/transform.py#L50).
-    * the 3rd argument is of type `tvm.ir.transform.PassInfo` which in this case is formated in string `The meta data of the pass - pass name: ApplyDefaultSchedule, opt_level: 0, required passes: []`.
