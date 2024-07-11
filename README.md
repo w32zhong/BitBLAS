@@ -153,4 +153,7 @@ graph TD;
    transform_weight[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L92-L93">bitblas_matmul.transform_weight</a>]
    bitblas_matmul_init --> bitblas_matmul
    bitblas_matmul_init --> transform_weight
+
+   bitblas_matmul_forward[<a href="https://github.com/w32zhong/BitBLAS/blob/main/python/bitblas/ops/general_matmul.py#L482">Matmul.forward</a>]
+   bitblas_matmul --> bitblas_matmul_forward
 ```
