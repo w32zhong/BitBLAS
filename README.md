@@ -88,12 +88,14 @@ graph TD;
    ModulePass[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L242">ModulePass</a>]
    register_object[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L41-L82">tvm._ffi.register_object</a>]
    _register_object[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L42">_register_object</a>]
+   tvm_runtime_obj[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49">tvm.runtime.Object</a>]
+   tvm_runtime_obj_base[<a href="https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L111">tvm_runtime_obj_base</a>]
+    
    module_pass -->|return| _wrap_class_module_pass --> pass_cls
    _wrap_class_module_pass --> __init_handle_by_constructor__
-   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object --> _register_object
+   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object -->|inhereted| _register_object -->|inhereted| tvm_runtime_obj_base -->|has| __init_handle_by_constructor__
 ```
 
-* On the other hand, `tvm.runtime.Object` is defined [here](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/runtime/object.py#L49) which is also inhered from [`ObjectBase`](https://github.com/LeiWang1999/tvm/blob/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/_ctypes/object.py#L114) which has the `__init_handle_by_constructor__` member function.  
 * [__init_handle_by_constructor__](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309) function calling
     * the first argument is `_ffi_transform_api.MakeModulePass` which is initialized from [`tvm._ffi._init_api("transform", "tvm.ir._ffi_transform_api")`](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/_ffi_transform_api.py). Following `tvm._ffi.__init__.py` we can find `_init_api` is defined [here](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/_ffi/registry.py#L299) and it internally calls `_init_api_prefix("tvm.ir._ffi_transform_api", prefix="transform")` in this case to bind the foreign function:
     ```py
