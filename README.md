@@ -93,7 +93,7 @@ graph TD;
     
    module_pass -->|return| _wrap_class_module_pass --> pass_cls
    _wrap_class_module_pass --> __init_handle_by_constructor__
-   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object -->|inhereted| _register_object -->|inhereted| tvm_runtime_obj_base -->|has| __init_handle_by_constructor__
+   _wrap_class_module_pass -->|inhereted| ModulePass --> register_object -->|inhereted| _register_object -->|inhereted| tvm_runtime_obj -->|inhereted| tvm_runtime_obj_base -->|has| __init_handle_by_constructor__
 ```
 
 * [__init_handle_by_constructor__](https://github.com/LeiWang1999/tvm/tree/618306ce3baa2c606d43856afbe6655e4e67b2c8/python/tvm/ir/transform.py#L309) function calling
