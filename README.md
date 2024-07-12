@@ -69,6 +69,7 @@ graph TD;
    _build_runtime_module --> Operator.rt_mod
    _build_runtime_module --> Operator.function_handle
    _build_runtime_module --> Operator.torch_func
+   _build_runtime_module --> tvm_build_call
 
    apply_default_schedule_call[<a href="https://github.com/w32zhong/BitBLAS/blob/b6cc2e798af0a487b5e953c8c6fef309d54beea7/python/bitblas/ops/general_matmul.py#L355">Matmul.optimized_func = apply_default_schedule of self.prim_func_mod</a>]
    apply_default_schedule[<a href="https://github.com/w32zhong/BitBLAS/blob/b6cc2e798af0a487b5e953c8c6fef309d54beea7/python/bitblas/ops/operator.py#L147">Operator.apply_default_schedule</a>]
