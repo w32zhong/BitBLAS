@@ -141,5 +141,5 @@ zeros = torch.rand(zeros_shape, dtype=torch.float16).cuda()
 for i in range(in_features // group_size): # group number i in range(8)
     for j in range(group_size): # group j-th element/column
          # within each group, we use the same zeros and scaling factors.
-         rescaling_tensor[:, i * group_size + j] = (weight_tensor[:, i * group_size + j] - zeros[:, i]) * scaling[:, i]
+         rescaling_tensor[:, i*group_size+j] = (weight_tensor[:, i*group_size+j] - zeros[:, i]) * scaling[:, i]
 ```
