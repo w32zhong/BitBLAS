@@ -40,14 +40,13 @@ To avoid build C++, comment `build_tvm(llvm_path)` in `BitBLASBuilPydCommand` of
 `tvm` is imported from `BitBLAS/build/lib/bitblas/3rdparty/tvm/python`.
 bitblas-related modules are imported from `BitBLAS/python/bitblas`.
 
-## Code Structure in Diagram
 Overall:
 ```mermaid
 graph TD;
    bitblas_bitnet_example[<a href="">bitblas_bitnet_example</a>]
    bitblas_matmul_init[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L77">BitLinear.bitblas_matmul = Matmul of Operator parent</a>]
    bitblas_matmul[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L144">BitLinear.bitblas_matmul.forward</a>]
-   transform_weight_call[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L92-L93">BitLinear.bitblas_matmul.transform_weight call</a>]
+   transform_weight_call[<a href="https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L92-L93">BitLinear.bitblas_matmul.transform_weight call in post_process_weights</a>]
    transform_weight[<a href="https://github.com/w32zhong/BitBLAS/blob/10039dd848f3f43b0170670f49b83dfe9a7c0a12/python/bitblas/ops/general_matmul.py#L409">BitLinear.bitblas_matmul.transform_weight</a>]
    general_compress[<a href="https://github.com/w32zhong/BitBLAS/blob/b6cc2e798af0a487b5e953c8c6fef309d54beea7/python/bitblas/quantization/utils.py#L54">general_compress</a>]
    bitblas_bitnet_example --> bitblas_matmul_init
@@ -118,3 +117,8 @@ graph TD;
    Pass -->|register| transform.Pass
    __init_handle_by_constructor__ --> handle
 ```
+
+Important functions:
+* [`post_process_weights`](https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L89) calls `weight_quant` on weights and do `transform_weight`.
+* [`weight_quant`](https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L92) scale down and clamp to [-1, 1] using mean value before creating a ternary net.
+* [`transform_weight`](https://github.com/w32zhong/BitBLAS/blob/10039dd848f3f43b0170670f49b83dfe9a7c0a12/python/bitblas/ops/general_matmul.py#L409) compress an integer matrix to a compact matrix of `W_dtype`
