@@ -143,3 +143,51 @@ for i in range(in_features // group_size): # group number i in range(8)
          # within each group, we use the same zeros and scaling factors.
          rescaling_tensor[:, i*group_size+j] = (weight_tensor[:, i*group_size+j] - zeros[:, i]) * scaling[:, i]
 ```
+
+Below is the `prim_func` generated for `A_dtype="float16"` activations and `W_dtype="uint4"` weights:
+```py
+# from tvm.script import ir as I
+# from tvm.script import tir as T
+
+@I.ir_module
+class Module:
+    @T.prim_func
+    def main(
+      A: T.Buffer((1, 1024), "float16"),
+      B: T.Buffer((1024, 512), "int8"), Scale: T.Buffer((1024, 8), "float16"),
+      Zeros: T.Buffer((1024, 8), "float16"),
+      D: T.Buffer((1, 1024), "float16")):
+        # with T.block("root"):
+        B_decode = T.alloc_buffer((1024, 1024), "float16")
+        C = T.alloc_buffer((1, 1024), "float16")
+        for n, k in T.grid(1024, 1024):
+            with T.block("B_decode"):
+                v_n, v_k = T.axis.remap("SS", [n, k])
+                T.reads(B[v_n, v_k // 2], Zeros[v_n, v_k // 128], Scale[v_n, v_k // 128])
+                T.writes(B_decode[v_n, v_k])
+                B_decode[v_n, v_k] =
+                  (
+                     T.Cast("float16", T.bitwise_and(
+                        T.shift_right(B[v_n, v_k // 2], T.Cast("int8", v_k % 2 * 4)),
+                        T.int8(15)
+                     ))
+                     -
+                     Zeros[v_n, v_k // 128]
+                  )
+                  * Scale[v_n, v_k // 128]
+        for i, j, k in T.grid(1, 1024, 1024):
+            with T.block("C"):
+                v_i, v_j, v_k = T.axis.remap("SSR", [i, j, k])
+                T.reads(A[v_i, v_k], B_decode[v_j, v_k])
+                T.writes(C[v_i, v_j])
+                with T.init():
+                    C[v_i, v_j] = T.float16(0)
+                C[v_i, v_j] = C[v_i, v_j] + A[v_i, v_k] * B_decode[v_j, v_k]
+        for i, j in T.grid(1, 1024):
+            with T.block("D"):
+                v_i, v_j = T.axis.remap("SS", [i, j])
+                T.reads(C[v_i, v_j])
+                T.writes(D[v_i, v_j])
+                D[v_i, v_j] = C[v_i, v_j]
+
+```
