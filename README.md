@@ -162,7 +162,7 @@ class Module:
         C = T.alloc_buffer((1, 1024), "float16")
         for n, k in T.grid(1024, 1024):
             with T.block("B_decode"):
-                v_n, v_k = T.axis.remap("SS", [n, k])
+                v_n, v_k = T.axis.remap("SS", [n, k]) # “S” (for spatial), “R” (for reduction)
                 T.reads(B[v_n, v_k // 2], Zeros[v_n, v_k // 128], Scale[v_n, v_k // 128])
                 T.writes(B_decode[v_n, v_k])
                 B_decode[v_n, v_k] =
