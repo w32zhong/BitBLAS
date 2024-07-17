@@ -165,11 +165,11 @@ class Module:
                 v_n, v_k = T.axis.remap("SS", [n, k]) # “S” (for spatial), “R” (for reduction)
                 T.reads(B[v_n, v_k // 2], Zeros[v_n, v_k // 128], Scale[v_n, v_k // 128])
                 T.writes(B_decode[v_n, v_k])
-                B_decode[v_n, v_k] =
+                B_decode[v_n, v_k] = # decompressing B
                   (
                      T.Cast("float16", T.bitwise_and(
                         T.shift_right(B[v_n, v_k // 2], T.Cast("int8", v_k % 2 * 4)),
-                        T.int8(15)
+                        T.int8(15) # b1111
                      ))
                      -
                      Zeros[v_n, v_k // 128]
