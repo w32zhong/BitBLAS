@@ -122,3 +122,25 @@ Important functions:
 * [`post_process_weights`](https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L89) calls `weight_quant` on weights and do `transform_weight`.
 * [`weight_quant`](https://github.com/w32zhong/BitBLAS/blob/5674b605d07649b2f16810a0fb0b5745ab63203f/integration/BitNet/utils_quant.py#L92) scale down and clamp to [-1, 1] using mean value before creating a ternary net.
 * [`transform_weight`](https://github.com/w32zhong/BitBLAS/blob/10039dd848f3f43b0170670f49b83dfe9a7c0a12/python/bitblas/ops/general_matmul.py#L409) compress an integer matrix to a compact matrix of `W_dtype`
+
+
+What is re-scaling? Below is the extracted [example code](https://github.com/w32zhong/BitBLAS/blob/main/docs/QuickStart.md#example-w_int4a_fp16-mixed-precision-matrix-multiplication).
+```py
+group_size = 128
+input_shape = (1, 1024)
+weight_shape = (1024, 1024)
+scaling_shape = (1024, 1024 // 128)
+zeros_shape = (1024, 1024 // 128)
+output_shape = (1, 1024)
+
+scaling = torch.rand(scaling_shape, dtype=torch.float16).cuda()
+zeros = torch.rand(zeros_shape, dtype=torch.float16).cuda()
+
+# Compute reference result with manual scaling and zero-point adjustment
+# rescale = (weight - zeros) * scaling
+for i in range(in_features // group_size):
+    for j in range(group_size):
+        rescaling_tensor[:, i * group_size + j] = (
+            weight_tensor[:, i * group_size + j].to(torch.float16) - zeros[:, i]
+        ) * scaling[:, i]
+```
