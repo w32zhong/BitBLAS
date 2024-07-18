@@ -182,7 +182,7 @@ class Module:
                 T.writes(C[v_i, v_j])
                 with T.init():
                     C[v_i, v_j] = T.float16(0)
-                C[v_i, v_j] = C[v_i, v_j] + A[v_i, v_k] * B_decode[v_j, v_k]
+                C[v_i, v_j] = C[v_i, v_j] + A[v_i, v_k] * B_decode[v_j, v_k] # matrix multiplication
         for i, j in T.grid(1, 1024):
             with T.block("D"):
                 v_i, v_j = T.axis.remap("SS", [i, j])
