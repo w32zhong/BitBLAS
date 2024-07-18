@@ -191,3 +191,50 @@ class Module:
                 D[v_i, v_j] = C[v_i, v_j]
 
 ```
+
+## Code Example
+Weight is `int8`, no scaling:
+```py
+import sys
+import os
+path = os.path.join("/home/tk/Desktop/bitblas/BitBLAS", "./build/lib")
+sys.path.insert(0, path)
+import torch
+import bitblas
+
+class TvmLinear():
+    def __init__(self, in_features, out_features, W_dtype="uint4"):
+        matmul_config = bitblas.MatmulConfig(
+            M=1,
+            K=in_features,
+            N=out_features,
+            A_dtype="float16",  # activation A dtype
+            W_dtype=W_dtype,  # weight W dtype
+            accum_dtype="float16",  # accumulation dtype
+            out_dtype="float16",  # output dtype
+            layout="nt",
+            with_bias=False,
+            group_size=-1, # 128,  # setting for grouped quantization
+            with_scaling=False,  # setting for scaling factor
+            with_zeros=False,  # setting for zeros
+            zeros_mode="original",  # setting for how to calculating zeros
+        )
+        self.matmul = bitblas.Matmul(config=matmul_config)
+        init_W = torch.randint(0, 7, (out_features, in_features), dtype=torch.int8).cuda()
+        self.set_weight(init_W)
+
+    def set_weight(self, origin_int_W):
+        self.W = self.matmul.transform_weight(origin_int_W)
+        self.W_ori = origin_int_W
+
+    def forward(self, A):
+        output = self.matmul(A, self.W)
+        verify = A @ self.W_ori.T.half()
+        assert torch.allclose(output, verify, atol=1e-2)
+        return output
+
+
+inp = torch.rand((1, 8), dtype=torch.float16).cuda()
+new_module = TvmLinear(8, 5)
+out = new_module.forward(inp)
+```
