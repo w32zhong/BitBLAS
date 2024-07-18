@@ -172,9 +172,9 @@ class Module:
                         T.int8(15) # b1111
                      ))
                      -
-                     Zeros[v_n, v_k // 128]
+                     Zeros[v_n, v_k // 128] # re-centering
                   )
-                  * Scale[v_n, v_k // 128]
+                  * Scale[v_n, v_k // 128] # scaling 
         for i, j, k in T.grid(1, 1024, 1024):
             with T.block("C"):
                 v_i, v_j, v_k = T.axis.remap("SSR", [i, j, k])
