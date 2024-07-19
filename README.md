@@ -341,3 +341,5 @@ for v_n in range(5):
         B_early[v_n, v_k] = c
         B_decode[v_n, v_k] = c * Scale[v_n, v_k // 4] - Zeros[v_n, v_k // 4]
 ```
+
+https://www.simonv.fr/TypesConvert/?integers
