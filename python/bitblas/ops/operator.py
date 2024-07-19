@@ -46,6 +46,8 @@ class Operator(ABC):
         self.config = config
         self.target = target
         self.prim_func_mod = self._select_implementation()
+        if name == 'matmul':
+            print(self.prim_func_mod)
         self.optimized_func = None
         self.rt_mod = None
         self.time_evaluator = None

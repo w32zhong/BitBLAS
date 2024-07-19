@@ -193,7 +193,7 @@ class Module:
 ```
 
 ## Code Example
-Weight is `int8`, no scaling:
+Without re-scaling:
 ```py
 import sys
 import os
@@ -237,4 +237,107 @@ class TvmLinear():
 inp = torch.rand((1, 8), dtype=torch.float16).cuda()
 new_module = TvmLinear(8, 5)
 out = new_module.forward(inp)
+```
+
+With re-scaling:
+```py
+class TvmLinear():
+    def __init__(self, in_features, out_features, W_dtype="uint4", group_size=128):
+        matmul_config = bitblas.MatmulConfig(
+            M=1,
+            K=in_features,
+            N=out_features,
+            A_dtype="float16",  # activation A dtype
+            W_dtype=W_dtype,  # weight W dtype
+            storage_dtype='int8',
+            accum_dtype="float16",  # accumulation dtype
+            out_dtype="float16",  # output dtype
+            layout="nt",
+            with_bias=False,
+            group_size=group_size,
+            with_scaling=True,  # setting for scaling factor
+            with_zeros=True,  # setting for zeros
+            zeros_mode="rescale",  # setting for how to calculating zeros
+        )
+        self.group_size = group_size
+        self.matmul = bitblas.Matmul(config=matmul_config)
+        # set random initial (binary) weights
+        init_W = torch.randint(0, 2, (out_features, in_features), dtype=torch.int8).cuda()
+        #self._set_quantized_weight(init_W)
+        self.bits = int(''.join(list(filter(str.isdigit, W_dtype))))
+        self.scaling = None
+        self.zeros = None
+
+    def _set_quantized_weight(self, W_quant):
+        self.W_store = self.matmul.transform_weight(W_quant)
+        self.W_quant = W_quant
+        breakpoint()
+
+    def set_weight(self, W):
+        out_features, in_features = W.shape
+        assert in_features % self.group_size == 0
+
+        reshape = (out_features, -1, self.group_size)
+        W_reshape = W.reshape(*reshape)
+        group_max = W_reshape.max(-1).values
+        group_min = W_reshape.min(-1).values
+        group_max = group_max.unsqueeze(-1).expand(reshape)
+        group_min = group_min.unsqueeze(-1).expand(reshape)
+        #Q_min = -(2**(self.bits - 1))
+        #Q_max = 2**(self.bits - 1) - 1
+        Q_min = 0
+        Q_max = 2**(self.bits) - 1
+        ratio = (Q_max - Q_min) / (group_max - group_min)
+
+        W_quant = ((W_reshape - group_min) * ratio).round() + Q_min
+        W_quant = W_quant.to(dtype=torch.long)
+        W_quant = W_quant.reshape(W.shape)
+        self._set_quantized_weight(W_quant)
+
+        self.scaling = 1 / ratio[:,:,0]
+        self.zeros = Q_min * self.scaling - group_min[:,:,0]
+
+        self.debug_scaling = self.scaling.unsqueeze(-1).expand(reshape).reshape(W.shape)
+        self.debug_zeros = self.zeros.unsqueeze(-1).expand(reshape).reshape(W.shape)
+        self.debug_W = W_quant.float() * self.debug_scaling - self.debug_zeros
+
+    def forward(self, A):
+        output = self.matmul(A, self.W_store, scale=self.scaling, zeros=self.zeros)
+        return output
+
+
+inp = torch.rand((1, 8), dtype=torch.float16).cuda()
+M = TvmLinear(8, 5, group_size=4)
+
+W = torch.rand((5, 8), dtype=torch.float16).cuda()
+M.set_weight(W)
+
+out = M.forward(inp)
+print('inp', inp)
+print('W', W)
+print('out', out)
+
+assert torch.allclose(
+    M.debug_W.T.half(),
+    W.T,
+    atol=1e-1
+)
+assert torch.allclose(
+    inp @ M.debug_W.T.half(),
+    inp @ W.T,
+    atol=1e-1
+)
+
+B_decode = W.clone()
+B_early = M.W_quant.clone()
+B = M.W_store # (5, 4)
+Scale = M.scaling
+Zeros = M.zeros
+for v_n in range(5):
+    for v_k in range(8):
+        a = B[v_n, v_k // 2] >> (v_k % 2 * 4)
+        b = torch.tensor(15, device='cuda:0', dtype=torch.int8).cuda()
+        c = a & b
+        B_early[v_n, v_k] = c
+        B_decode[v_n, v_k] = c * Scale[v_n, v_k // 4] - Zeros[v_n, v_k // 4]
 ```
