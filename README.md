@@ -258,6 +258,7 @@ class TvmLinear():
             with_scaling=True,  # setting for scaling factor
             with_zeros=True,  # setting for zeros
             zeros_mode="rescale",  # setting for how to calculating zeros
+            fast_decoding=False # important! avoid post-processing (i.e., LOP3Permutate)
         )
         self.group_size = group_size
         self.matmul = bitblas.Matmul(config=matmul_config)
@@ -271,7 +272,6 @@ class TvmLinear():
     def _set_quantized_weight(self, W_quant):
         self.W_store = self.matmul.transform_weight(W_quant)
         self.W_quant = W_quant
-        breakpoint()
 
     def set_weight(self, W):
         out_features, in_features = W.shape
@@ -327,19 +327,13 @@ assert torch.allclose(
     inp @ W.T,
     atol=1e-1
 )
-
-B_decode = W.clone()
-B_early = M.W_quant.clone()
-B = M.W_store # (5, 4)
-Scale = M.scaling
-Zeros = M.zeros
-for v_n in range(5):
-    for v_k in range(8):
-        a = B[v_n, v_k // 2] >> (v_k % 2 * 4)
-        b = torch.tensor(15, device='cuda:0', dtype=torch.int8).cuda()
-        c = a & b
-        B_early[v_n, v_k] = c
-        B_decode[v_n, v_k] = c * Scale[v_n, v_k // 4] - Zeros[v_n, v_k // 4]
+assert torch.allclose(
+    inp @ W.T,
+    out,
+    atol=1e-1
+)
 ```
 
-https://www.simonv.fr/TypesConvert/?integers
+## Useful tools
+* Types converter: https://www.simonv.fr/TypesConvert/?integers
+* `pip install epicnumbers` and then `epicnumbers -123`
