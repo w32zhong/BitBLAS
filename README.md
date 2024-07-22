@@ -202,7 +202,7 @@ sys.path.insert(0, path)
 import torch
 import bitblas
 
-class TvmLinear():
+class TvmLinear(torch.nn.Module):
     def __init__(self, in_features, out_features, W_dtype="uint4"):
         matmul_config = bitblas.MatmulConfig(
             M=1,
@@ -332,6 +332,45 @@ assert torch.allclose(
     out,
     atol=1e-1
 )
+```
+
+Application example:
+```py
+from transformers import AutoProcessor, MusicgenForConditionalGeneration
+model = MusicgenForConditionalGeneration.from_pretrained("facebook/musicgen-small", torch_dtype=torch.half)
+model.to("cuda")
+print(model)
+
+linear_classes = (torch.nn.Linear, )
+for key, module in model.named_modules():
+    if isinstance(module, linear_classes):
+        if module.bias is not None: continue
+        print(key, module.weight.shape)
+        path_fields = key.split('.')
+        parent_key = '.'.join(path_fields[:-1])
+        child_key = path_fields[-1]
+        parent = model.get_submodule(parent_key)
+        out_features, in_features = module.weight.shape
+        M = TvmLinear(in_features, out_features, group_size=16, W_dtype="uint4")
+        M.set_weight(module.weight)
+        setattr(parent, child_key, M)
+        #break
+
+processor = AutoProcessor.from_pretrained("facebook/musicgen-small")
+inputs = processor(
+    text=["a piano and cello duet ambient music"],
+    padding=True,
+    return_tensors="pt",
+)
+inputs.to("cuda")
+
+with torch.no_grad():
+    audio_values = model.generate(**inputs, max_new_tokens=256)
+
+import scipy
+sampling_rate = model.config.audio_encoder.sampling_rate
+data = audio_values[0, 0].detach().cpu().numpy()
+scipy.io.wavfile.write("musicgen_out.wav", rate=sampling_rate, data=data)
 ```
 
 ## Useful tools
