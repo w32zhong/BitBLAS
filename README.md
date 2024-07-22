@@ -242,7 +242,8 @@ out = new_module.forward(inp)
 With re-scaling:
 ```py
 class TvmLinear(torch.nn.Module):
-    def __init__(self, batch_size, in_features, out_features, W_dtype="uint4", group_size=128):
+    def __init__(self, batch_size, in_features, out_features,
+        W_dtype="uint4", group_size=128, debug=False):
         super().__init__() # set up torch module (e.g., _backward_hooks)
 
         matmul_config = bitblas.MatmulConfig(
@@ -264,21 +265,22 @@ class TvmLinear(torch.nn.Module):
         )
         self.group_size = group_size
         self.matmul = bitblas.Matmul(config=matmul_config)
+
         # set random initial (binary) weights
-        init_W = torch.randint(0, 2, (out_features, in_features), dtype=torch.int8).cuda()
+        #init_W = torch.randint(0, 2, (out_features, in_features), dtype=torch.int8)
         #self._set_quantized_weight(init_W)
+
         self.bits = int(''.join(list(filter(str.isdigit, W_dtype))))
         self.scaling = None
         self.zeros = None
         self.weight = None # placeholder for T5 modeling access.
+        self.debug = debug
 
     def _set_quantized_weight(self, W_quant):
         self.W_store = self.matmul.transform_weight(W_quant)
-        self.W_quant = W_quant
 
     def set_weight(self, W):
         out_features, in_features = W.shape
-        self.W_origin = W
         assert in_features % self.group_size == 0
 
         reshape = (out_features, -1, self.group_size)
@@ -296,26 +298,30 @@ class TvmLinear(torch.nn.Module):
         W_quant = ((W_reshape - group_min) * ratio).round() + Q_min
         W_quant = W_quant.to(dtype=torch.long)
         W_quant = W_quant.reshape(W.shape)
-        self._set_quantized_weight(W_quant)
 
+        self._set_quantized_weight(W_quant)
         self.scaling = 1 / ratio[:,:,0]
         self.zeros = Q_min * self.scaling - group_min[:,:,0]
 
-        self.debug_scaling = self.scaling.unsqueeze(-1).expand(reshape).reshape(W.shape)
-        self.debug_zeros = self.zeros.unsqueeze(-1).expand(reshape).reshape(W.shape)
-        self.debug_W = W_quant.float() * self.debug_scaling - self.debug_zeros
+        if self.debug:
+            self.W_origin = W
+            self.W_quant = W_quant
+            self.debug_scaling = self.scaling.unsqueeze(-1).expand(reshape).reshape(W.shape)
+            self.debug_zeros = self.zeros.unsqueeze(-1).expand(reshape).reshape(W.shape)
+            self.debug_W = W_quant.float() * self.debug_scaling - self.debug_zeros
 
     def forward(self, A):
         output = self.matmul(A, self.W_store, scale=self.scaling, zeros=self.zeros)
-        #print(output.isnan().nonzero().numel())
-        #print(torch.allclose(self.debug_W.half(), self.W_origin, atol=1e-1))
-        #print(torch.allclose(A @ self.debug_W.half().T, A @ self.W_origin.T, atol=1e-1))
-        #output_check = A @ self.W_origin.T
+        if self.debug:
+            output_check = A @ self.W_origin.T
+            print(output.isnan().nonzero().numel())
+            print(torch.allclose(self.debug_W.half(), self.W_origin, atol=1e-1))
+            print(torch.allclose(A @ self.debug_W.half().T, A @ self.W_origin.T, atol=1e-1))
+            breakpoint()
         return output
 
-
-inp = torch.rand((1, 2, 8), dtype=torch.float16).cuda()
-M = TvmLinear(2, 8, 5, W_dtype="uint4", group_size=4)
+inp = torch.rand((1, 3, 8), dtype=torch.float16).cuda()
+M = TvmLinear(3, 8, 5, W_dtype="uint4", group_size=4)
 
 W = torch.rand((5, 8), dtype=torch.float16).cuda()
 M.set_weight(W)
@@ -355,31 +361,35 @@ print(model)
 
 processor = AutoProcessor.from_pretrained("facebook/musicgen-small")
 inputs = processor(
-    text=["a piano and loud drum"],
-    padding=True,
-    return_tensors="pt",
+    text=["80s pop track with bassy drums and synth"],
+    padding=True, return_tensors="pt",
 )
 inputs.to("cuda")
-batch_size = inputs.input_ids.shape[-1]
+seq_len = inputs.input_ids.shape[-1]
 
 linear_classes = (torch.nn.Linear, )
+n_replaced = 0
 for key, module in model.named_modules():
     if isinstance(module, linear_classes):
         if module.bias is not None: continue
-        print(key, module.weight.shape)
+        print(n_replaced, key, module.weight.shape)
         path_fields = key.split('.')
         parent_key = '.'.join(path_fields[:-1])
         child_key = path_fields[-1]
         parent = model.get_submodule(parent_key)
         out_features, in_features = module.weight.shape
-        M = TvmLinear(batch_size, in_features, out_features, group_size=32, W_dtype="uint4")
+        M = TvmLinear([2, seq_len], in_features, out_features, group_size=256, W_dtype="uint4")
         M.set_weight(module.weight)
+        M.path = key
         setattr(parent, child_key, M)
+        n_replaced += 1
+        del module
         import gc
         gc.collect()
         torch.cuda.empty_cache()
-        break
+        #if n_replaced > 2: break
 
+print('generating ...')
 with torch.no_grad():
     audio_values = model.generate(**inputs, max_new_tokens=256)
 
