@@ -248,7 +248,7 @@ With re-scaling:
 ```py
 class TvmLinear(torch.nn.Module):
     def __init__(self, batch_size, in_features, out_features,
-        W_dtype="uint4", group_size=128, debug=False):
+        W_dtype="uint4", group_size=-1, debug=False, no_extra_mem=False, tuning=True):
         super().__init__() # set up torch module (e.g., _backward_hooks)
 
         matmul_config = bitblas.MatmulConfig(
@@ -268,8 +268,8 @@ class TvmLinear(torch.nn.Module):
             zeros_mode="rescale",  # setting for how to calculating zeros
             fast_decoding=False # important! avoid post-processing (i.e., LOP3Permutate)
         )
-        self.group_size = group_size
-        self.matmul = bitblas.Matmul(config=matmul_config)
+        self.group_size = group_size if group_size != -1 else in_features
+        self.matmul = bitblas.Matmul(config=matmul_config, enable_tuning=tuning)
 
         # set random initial (binary) weights
         #init_W = torch.randint(0, 2, (out_features, in_features), dtype=torch.int8)
@@ -280,9 +280,11 @@ class TvmLinear(torch.nn.Module):
         self.zeros = None
         self.weight = None # placeholder for T5 modeling access.
         self.debug = debug
+        self.no_extra_mem = no_extra_mem
 
     def _set_quantized_weight(self, W_quant):
         self.W_store = self.matmul.transform_weight(W_quant)
+        self.W_store = self.W_store.cuda()
 
     def set_weight(self, W):
         out_features, in_features = W.shape
@@ -305,8 +307,9 @@ class TvmLinear(torch.nn.Module):
         W_quant = W_quant.reshape(W.shape)
 
         self._set_quantized_weight(W_quant)
-        self.scaling = 1 / ratio[:,:,0]
-        self.zeros = Q_min * self.scaling - group_min[:,:,0]
+        if not self.no_extra_mem:
+            self.scaling = 1 / ratio[:,:,0].clone().cuda()
+            self.zeros = Q_min * self.scaling - group_min[:,:,0].clone().cuda()
 
         if self.debug:
             self.W_origin = W
@@ -325,8 +328,8 @@ class TvmLinear(torch.nn.Module):
             breakpoint()
         return output
 
-inp = torch.rand((1, 3, 8), dtype=torch.float16).cuda()
-M = TvmLinear(3, 8, 5, W_dtype="uint4", group_size=4)
+inp = torch.rand((4, 1, 8), dtype=torch.float16).cuda()
+M = TvmLinear(4, 8, 5, W_dtype="uint4", group_size=4)
 
 W = torch.rand((5, 8), dtype=torch.float16).cuda()
 M.set_weight(W)
@@ -373,26 +376,34 @@ inputs.to("cuda")
 seq_len = inputs.input_ids.shape[-1]
 
 linear_classes = (torch.nn.Linear, )
-n_replaced = 0
+to_replace_lst = []
 for key, module in model.named_modules():
     if isinstance(module, linear_classes):
         if module.bias is not None: continue
-        print(n_replaced, key, module.weight.shape)
+        old_W = module.weight.detach().cpu()
         path_fields = key.split('.')
         parent_key = '.'.join(path_fields[:-1])
         child_key = path_fields[-1]
-        parent = model.get_submodule(parent_key)
-        out_features, in_features = module.weight.shape
-        M = TvmLinear([2, seq_len], in_features, out_features, group_size=256, W_dtype="uint4")
-        M.set_weight(module.weight)
-        M.path = key
-        setattr(parent, child_key, M)
-        n_replaced += 1
-        del module
-        import gc
-        gc.collect()
+        to_replace_lst.append((parent_key, child_key, old_W))
+
+n_replaced = 0
+for parent_key, child_key, old_W in to_replace_lst:
+    parent = model.get_submodule(parent_key)
+    delattr(parent, child_key)
+    out_features, in_features = old_W.shape
+    M = TvmLinear([2, seq_len], in_features, out_features,
+        group_size=-1, W_dtype="uint4", no_extra_mem=False, tuning=False)
+    # 589824 * 2 => 294912 * 1 + 768 * 2 + 768 * 2
+    # save: 881,664 bytes
+    M.set_weight(old_W)
+    setattr(parent, child_key, M)
+    n_replaced += 1
+    print(n_replaced, parent_key, child_key, old_W.shape)
+    if n_replaced % 20 == 0:
+        print('GC', gc.collect())
         torch.cuda.empty_cache()
-        #if n_replaced > 2: break
+
+breakpoint()
 
 print('generating ...')
 with torch.no_grad():
