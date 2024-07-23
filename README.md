@@ -124,7 +124,7 @@ Important functions:
 * [`transform_weight`](https://github.com/w32zhong/BitBLAS/blob/10039dd848f3f43b0170670f49b83dfe9a7c0a12/python/bitblas/ops/general_matmul.py#L409) compress an integer matrix to a compact matrix of `W_dtype`
 
 
-What is re-scaling? Below is the extracted [example code](https://github.com/w32zhong/BitBLAS/blob/main/docs/QuickStart.md#example-w_int4a_fp16-mixed-precision-matrix-multiplication).
+What is re-scaling? Below is the extracted [example code](https://github.com/w32zhong/BitBLAS/blob/main/docs/QuickStart.md#example-w_int4a_fp16-mixed-precision-matrix-multiplication) for encoding.
 ```py
 group_size = 128
 input_shape = (1, 1024)
@@ -144,7 +144,7 @@ for i in range(in_features // group_size): # group number i in range(8)
          rescaling_tensor[:, i*group_size+j] = (weight_tensor[:, i*group_size+j] - zeros[:, i]) * scaling[:, i]
 ```
 
-Below is the `prim_func` generated for `A_dtype="float16"` activations and `W_dtype="uint4"` weights:
+For decoding, below is the `prim_func` generated for `A_dtype="float16"` activations and `W_dtype="uint4"` weights:
 ```py
 # from tvm.script import ir as I
 # from tvm.script import tir as T
