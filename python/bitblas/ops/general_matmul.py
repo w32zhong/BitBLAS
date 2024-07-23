@@ -353,6 +353,8 @@ class Matmul(Operator):
     def _build_default_module(self, target: Target):
         try:
             self.optimized_func = self.apply_default_schedule(self.prim_func_mod, target)
+            #if self.name == 'matmul':
+            #    breakpoint()
         except Exception:
             self.optimized_func = None
             logger.warning(
