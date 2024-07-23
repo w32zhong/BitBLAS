@@ -212,7 +212,7 @@ class TvmLinear(torch.nn.Module):
             W_dtype=W_dtype,  # weight W dtype
             accum_dtype="float16",  # accumulation dtype
             out_dtype="float16",  # output dtype
-            layout="nt",
+            layout="nt", # A is non-transpose and W is transpose
             with_bias=False,
             group_size=-1, # 128,  # setting for grouped quantization
             with_scaling=False,  # setting for scaling factor
