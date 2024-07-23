@@ -192,6 +192,11 @@ class Module:
 
 ```
 
+## Illustration
+![1](https://github.com/user-attachments/assets/7801592e-638e-4e69-8d14-7396976f64f6)
+
+![2](https://github.com/user-attachments/assets/dbfd1f96-e8b3-4a48-a847-90381fb78f24)
+
 ## Code Example
 Without re-scaling:
 ```py
