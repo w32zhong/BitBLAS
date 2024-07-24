@@ -124,12 +124,20 @@ class Operator(ABC):
             #self.time_evaluator = rt_mod.time_evaluator(
             #    rt_mod.entry_name, self.arch.device, number=10)
 
-            #with open('a.c', 'w') as fh:
-            #    src = rt_mod.get_source()
-            #    fh.write(src)
-
             self.function_handle = rt_mod.get_function(rt_mod.entry_name).handle
             self.torch_func = to_pytorch_func(rt_mod)
+
+            ### test
+            #func = rt_mod[rt_mod.entry_name]
+            #A = tvm.nd.array(np.ones((2, 768), dtype="float16"))
+            #B = tvm.nd.array(np.random.randint(0, 2, size=(768, 384), dtype="int8"))
+            #Scale = tvm.nd.array(np.ones((768, 3), dtype="float16"))
+            #Zeros = tvm.nd.array(np.ones((768, 3), dtype="float16"))
+            #D = tvm.nd.array(np.ones((2, 768), dtype="float16"))
+            #with open('a.llvm', 'w') as fh:
+            #    fh.write(rt_mod.get_source())
+            #breakpoint()
+            #func(A, B, Scale, Zeros, D)
 
             if self.arch.platform == "CUDA":
                 try:
