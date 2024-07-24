@@ -228,17 +228,21 @@ class Matmul(Operator):
         super().__init__(name, config, target)
         # here prim_func_mod gets assigned for the first time
         # print(self.prim_func_mod)
+        # print(self.target)
+        # print(self.arch)
 
         if source_format == "int" and self.with_zeros:
             logger.warning(
                 "[BitBLAS][Warning] with_zeros is not supported for int source format as int has a constant zeropoints already."
             )
 
-        target = self.target
-        if target.kind.name != "cuda":
-            raise ValueError("Currently only support cuda target")
-
-        self.arch = CUDA(target)
+        #target = self.target
+        #if target.kind.name == "cuda":
+        #    self.arch = CUDA(target)
+        #elif target.kind.name == "llvm":
+        #    self.arch = CPU(target)
+        #else:
+        #    raise ValueError("Currently only support cuda target")
 
         if isinstance(self.M, Tuple):
             self.dynamic_range = {"m": self.M}
@@ -506,6 +510,7 @@ class Matmul(Operator):
 
         stream = torch.cuda.current_stream()
 
+        #breakpoint()
         if self.lib is None:
             self._forward_from_torch_func(*args)
         self._forward_from_prebuild_lib(*args, stream=stream.cuda_stream)
