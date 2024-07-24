@@ -5,6 +5,7 @@ from tvm.target import Target
 import operator
 from functools import reduce
 from bitblas.base.roller.arch.cuda import CUDA
+from bitblas.base.roller.arch.cpu import CPU
 from typing import Any, Literal, Optional, Tuple, Union
 from .operator import Operator, TransformKind, OPExecutorCPU
 from .impl.matmul_dequantize_impl import (
