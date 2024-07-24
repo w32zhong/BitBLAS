@@ -236,13 +236,13 @@ class Matmul(Operator):
                 "[BitBLAS][Warning] with_zeros is not supported for int source format as int has a constant zeropoints already."
             )
 
-        #target = self.target
-        #if target.kind.name == "cuda":
-        #    self.arch = CUDA(target)
-        #elif target.kind.name == "llvm":
-        #    self.arch = CPU(target)
-        #else:
-        #    raise ValueError("Currently only support cuda target")
+        target = self.target
+        if target.kind.name == "cuda":
+            self.arch = CUDA(target)
+        elif target.kind.name == "llvm":
+            self.arch = CPU(target)
+        else:
+            raise ValueError("Currently only support cuda target")
 
         if isinstance(self.M, Tuple):
             self.dynamic_range = {"m": self.M}
