@@ -17,6 +17,16 @@ conda install cmake
 python setup.py build
 ```
 
+In my case, I need to fix building by
+```sh
+cd 3rdparty/tvm
+git apply my_patch_to_tvm.patch
+cd ./build
+cmake ..
+make
+```
+or edit `CMakeFiles/tvm.dir/link.txt` and insert `-lcuda` near every `-lxml2`.
+
 For running TVM Python interface:
 ```sh
 pip install decorator psutil attrs thefuzz pytest tqdm
