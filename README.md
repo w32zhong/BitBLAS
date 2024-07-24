@@ -431,3 +431,59 @@ mplayer -ao openal output.wav
 ## Useful tools
 * Types converter: https://www.simonv.fr/TypesConvert/?integers
 * `pip install epicnumbers` and then `epicnumbers -123`
+
+To debug a TIR function:
+```py
+import sys
+import os
+path = os.path.join("/home/tk/Desktop/bitblas/BitBLAS", "./build/lib")
+path2 = os.path.join("/home/tk/Desktop/bitblas/BitBLAS", "./build/lib/bitblas/3rdparty/tvm/python")
+sys.path.insert(0, path)
+sys.path.insert(0, path2)
+
+import tvm
+from tvm.ir.module import IRModule
+from tvm.script import tir as T
+import numpy as np
+
+@T.prim_func
+def main(var_A: T.handle, B: T.Buffer((768, 384), "int8"), Scale: T.Buffer((768, 3), "float16"), Zeros: T.Buffer((768, 3), "float16"), var_D: T.handle):
+    T.func_attr({"dequantize_info": {"B_decode": {"decode_block": "B_decode", "fast_decoding": T.bool(False), "group_size": 256, "source_format": {"bits": 4, "format": "uint"}, "storage_dtype": "int8", "target_format": "float16", "with_scaling": T.bool(True), "with_zeros": T.bool(True), "zeros_mode": "rescale"}}, "opt_shapes": {"m": [2, 12]}, "tir.noalias": T.bool(True)})
+    m = T.int32()
+    A = T.match_buffer(var_A, (m, 768), "float16")
+    D = T.match_buffer(var_D, (m, 768), "float16")
+    # with T.block("root"):
+    B_decode = T.alloc_buffer((768, 768), "float16")
+    C = T.alloc_buffer((m, 768), "float16")
+    for n, k in T.grid(768, 768):
+        with T.block("B_decode"):
+            v_n, v_k = T.axis.remap("SS", [n, k])
+            T.reads(B[v_n, v_k // 2], Scale[v_n, v_k // 256], Zeros[v_n, v_k // 256])
+            T.writes(B_decode[v_n, v_k])
+            B_decode[v_n, v_k] = T.Cast("float16", T.bitwise_and(T.shift_right(B[v_n, v_k // 2], T.Cast("int8", v_k % 2 * 4)), T.int8(15))) * Scale[v_n, v_k // 256] - Zeros[v_n, v_k // 256]
+    for i, j, k in T.grid(m, 768, 768):
+        with T.block("C"):
+            v_i, v_j, v_k = T.axis.remap("SSR", [i, j, k])
+            T.reads(A[v_i, v_k], B_decode[v_j, v_k])
+            T.writes(C[v_i, v_j])
+            with T.init():
+                C[v_i, v_j] = T.float16(0)
+            C[v_i, v_j] = C[v_i, v_j] + A[v_i, v_k] * B_decode[v_j, v_k]
+    for i, j in T.grid(m, 768):
+        with T.block("D"):
+            v_i, v_j = T.axis.remap("SS", [i, j])
+            T.reads(C[v_i, v_j])
+            T.writes(D[v_i, v_j])
+            D[v_i, v_j] = C[v_i, v_j]
+
+rt_mod = tvm.build(main, target='llvm')
+func = rt_mod[rt_mod.entry_name]
+
+A = tvm.nd.array(np.ones((2, 768), dtype="float16"))
+B = tvm.nd.array(np.random.randint(0, 2, size=(768, 384), dtype="int8"))
+Scale = tvm.nd.array(np.ones((768, 3), dtype="float16"))
+Zeros = tvm.nd.array(np.ones((768, 3), dtype="float16"))
+D = tvm.nd.array(np.ones((2, 768), dtype="float16"))
+func(A, B, Scale, Zeros, D)
+print(D)
+```
