@@ -121,10 +121,16 @@ class Operator(ABC):
         if rt_mod:
             self.rt_mod = rt_mod
             # Initialize a time evaluator with the built module, specifying the device and the number of runs
-            self.time_evaluator = rt_mod.time_evaluator(
-                rt_mod.entry_name, self.arch.device, number=10)
+            #self.time_evaluator = rt_mod.time_evaluator(
+            #    rt_mod.entry_name, self.arch.device, number=10)
+
+            #with open('a.c', 'w') as fh:
+            #    src = rt_mod.get_source()
+            #    fh.write(src)
+
             self.function_handle = rt_mod.get_function(rt_mod.entry_name).handle
             self.torch_func = to_pytorch_func(rt_mod)
+
             if self.arch.platform == "CUDA":
                 try:
                     if (self.dynamic_range is not None and len(self.optimized_func.functions) > 1):
