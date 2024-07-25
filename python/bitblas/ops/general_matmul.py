@@ -505,7 +505,7 @@ class Matmul(Operator):
                 A.shape[:-1] + (self.N,), dtype=self.torch_output_dtype, device=A.device)
         args.append(output)
 
-        if self.dynamic_range is not None:
+        if self.dynamic_range is not None and self.target.kind.name == "cuda":
             m = reduce(operator.mul, A.shape[:-1], 1)
             args.append(m)
 
